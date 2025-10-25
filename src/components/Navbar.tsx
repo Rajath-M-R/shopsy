@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X, Moon, Sun, User } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, Moon, Sun, User, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
+import { useWishlist } from '../context/WishlistContext';
+import { products } from '../data/products';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,6 +15,7 @@ const Navbar: React.FC = () => {
 
   const { state: cartState } = useCart();
   const { isDark, toggleTheme } = useTheme();
+  const { state: wishlistState } = useWishlist();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,6 +26,18 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSuggestions && !event.target || !(event.target as Element).closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSuggestions]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +137,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
+          <div className="search-container hidden md:flex flex-1 max-w-md mx-8 relative">
             <form onSubmit={handleSearch} className="w-full">
               <div className="relative">
                 <input
@@ -130,12 +145,24 @@ const Navbar: React.FC = () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                 />
                 <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </form>
-            
+
             {/* Search Suggestions */}
             {showSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
@@ -143,21 +170,50 @@ const Navbar: React.FC = () => {
                   <div
                     key={product.id}
                     onClick={() => handleSuggestionClick(product.id)}
-                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3"
+                    className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                   >
-                    <img src={product.image} alt={product.name} className="w-8 h-8 object-cover rounded" />
-                    <div>
+                    <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-lg" />
+                    <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{product.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">${product.price}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{product.category}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-primary-600 dark:text-primary-400">
+                        ${product.price}
+                      </div>
+                      {product.isOnSale && (
+                        <div className="text-xs text-red-500 font-medium">
+                          {product.discount}% OFF
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* No results message */}
+            {showSuggestions && searchQuery.trim().length > 0 && searchSuggestions.length === 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                  No products found for "{searchQuery}"
+                </div>
               </div>
             )}
           </div>
 
           {/* Right Side Icons */}
           <div className="flex items-center space-x-4">
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative p-2 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+              <Heart className="h-5 w-5" />
+              {wishlistState.items.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {wishlistState.items.length}
+                </span>
+              )}
+            </Link>
+
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
@@ -233,28 +289,25 @@ const Navbar: React.FC = () => {
                 Become a Seller
               </Link>
               <Link
-                to="/contact"
+                to="/wishlist"
                 className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Contact Us
+                <div className="flex items-center">
+                  <Heart className="h-4 w-4 mr-2" />
+                  Wishlist {wishlistState.items.length > 0 && `(${wishlistState.items.length})`}
+                </div>
               </Link>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
-                <Link
-                  to="/login"
-                  className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="block px-3 py-2 bg-primary-600 text-white rounded-lg mx-3 mt-2 text-center hover:bg-primary-700 transition-all duration-200 transform hover:scale-105"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Sign Up
-                </Link>
-              </div>
+              <Link
+                to="/cart"
+                className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <div className="flex items-center">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Cart {cartState.totalItems > 0 && `(${cartState.totalItems})`}
+                </div>
+              </Link>
             </div>
           </div>
         )}

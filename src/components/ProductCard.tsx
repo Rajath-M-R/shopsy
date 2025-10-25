@@ -40,6 +40,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
+
+          {/* Sale Badge */}
+          {product.isOnSale && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+              {product.discount}% OFF
+            </div>
+          )}
+
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <button className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:shadow-lg transition-shadow">
               <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -68,8 +76,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Link>
 
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            ${product.price}
+          <div className="flex items-center space-x-2">
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              ₹{product.price.toLocaleString()}
+            </div>
+            {product.originalPrice && (
+              <div className="text-lg text-gray-500 dark:text-gray-400 line-through">
+                ₹{product.originalPrice.toLocaleString()}
+              </div>
+            )}
           </div>
           <button
             onClick={handleAddToCart}
@@ -79,6 +94,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span className="text-sm font-medium">Add to Cart</span>
           </button>
         </div>
+
+        {/* Savings amount */}
+        {product.originalPrice && product.discount && (
+          <div className="mt-2 text-xs text-green-600 dark:text-green-400 font-medium">
+            Save ${product.originalPrice - product.price}
+          </div>
+        )}
       </div>
     </div>
   );
